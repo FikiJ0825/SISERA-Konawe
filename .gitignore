@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+*.apk
+*.aab
+*.ipa
+
+# Native build output
+android/
+ios/
+.gradle/
+build/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Environment & secrets (jangan commit kunci Supabase)
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Word temporary files
+~$*.docx
+
+# Claude Code local
+.claude/
