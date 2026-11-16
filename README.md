@@ -21,6 +21,8 @@ Project Tugas Akhir Program Maganghub di BPS Kabupaten Konawe. Konsepnya mengacu
 ## Dokumen
 - `Laporan_Rancangan_SISERA_Konawe.docx` — laporan rancangan awal
 - `Templat_Laporan_Akhir_SISERA_Konawe.docx` — templat laporan akhir
+- `Templat_Laporan_Progres_Bulan_1_SI_LAIKA.docx` — templat laporan sederhana bulan pertama (gambaran, flowchart, use case, ERD)
+- `docs/diagram/` — sumber diagram laporan (`buat_diagram.py` menghasilkan SVG dan PNG); `docs/buat_templat_laporan.py` membangun ulang templat Word
 
 ## Konfigurasi
 Salin `.env.example` menjadi `.env`, lalu isi dengan URL dan kunci **anon** Supabase. Jangan pernah memasukkan kunci `service_role` ke aplikasi atau repository.
