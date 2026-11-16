@@ -5,6 +5,9 @@ module.exports = {
   content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
+    // Dikosongkan agar `font-bold` dkk HANYA menyetel fontFamily. Jika fontWeight ikut disetel,
+    // Android bisa jatuh ke font sistem atau menebalkan font kustom dua kali.
+    fontWeight: {},
     extend: {
       colors: {
         // Diambil dari logo BPS (biru, oranye, hijau) dan logo SI LAIKA (biru tua).
@@ -28,6 +31,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['PlusJakartaSans_400Regular'],
+        regular: ['PlusJakartaSans_400Regular'],
         medium: ['PlusJakartaSans_500Medium'],
         semibold: ['PlusJakartaSans_600SemiBold'],
         bold: ['PlusJakartaSans_700Bold'],

@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { IndicatorCard, InfografisCard, PublicationRow } from '@/components/cards';
-import { Card, HeaderDecor, SearchBar, SectionHeader, ShortcutTile, StateView, TAB_BAR_SPACE, type IconName } from '@/components/ui';
+import { Card, Container, HeaderDecor, SearchBar, SectionHeader, ShortcutTile, StateView, keyboardScrollProps, type IconName } from '@/components/ui';
 import { env } from '@/config/env';
 import { useBrs, useInfografis, useIndikator, useKontak, usePublikasi, useTabelKategori } from '@/hooks/useData';
+import { useLayout } from '@/hooks/useLayout';
 import { colors } from '@/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatTanggal } from '@/components/ui';
@@ -26,6 +27,7 @@ const INFO_TABS = ['Publikasi', 'Tabel', 'BRS'] as const;
 
 export default function Beranda() {
   const insets = useSafeAreaInsets();
+  const { cardWidth, shortcutColumns, tabBarSpace } = useLayout();
   const indikator = useIndikator();
   const publikasi = usePublikasi();
   const tabel = useTabelKategori();
@@ -33,12 +35,19 @@ export default function Beranda() {
   const infografis = useInfografis();
   const kontak = useKontak();
   const [tab, setTab] = useState<(typeof INFO_TABS)[number]>('Publikasi');
+  const [refreshing, setRefreshing] = useState(false);
+  const refresh = () => {
+    setRefreshing(true);
+    [indikator, publikasi, tabel, brs, infografis, kontak].forEach((q) => q.reload());
+    setTimeout(() => setRefreshing(false), 700);
+  };
 
   return (
-    <ScrollView className="flex-1 bg-surface" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: TAB_BAR_SPACE }}>
+    <ScrollView className="flex-1 bg-surface" {...keyboardScrollProps} contentContainerStyle={{ paddingBottom: tabBarSpace }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary700} colors={[colors.primary700]} />}>
       {/* Hero */}
       <View className="overflow-hidden rounded-b-[36px] bg-primary-700 px-5 pb-7" style={{ paddingTop: insets.top + 14 }}>
         <HeaderDecor />
+        <Container>
         <View className="flex-row items-center">
           <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white">
             <Image source={require('../../assets/images/logo-bps.png')} style={{ width: 34, height: 28 }} contentFit="contain" />
@@ -57,7 +66,9 @@ export default function Beranda() {
         <Text className="mt-1.5 font-medium text-[13px] text-primary-200">Sistem Informasi dan Layanan Statistik Konawe Terintegrasi</Text>
 
         <View className="mt-5 flex-row items-center">
-          <SearchBar onPress={() => router.push('/pencarian')} />
+          <View className="min-w-0 flex-1">
+            <SearchBar onPress={() => router.push('/pencarian')} />
+          </View>
           <Pressable onPress={() => router.push('/pencarian')} className="ml-3 h-12 w-12 items-center justify-center rounded-2xl bg-orange" accessibilityLabel="Filter">
             <Ionicons name="options" size={21} color="#fff" />
           </Pressable>
@@ -70,14 +81,17 @@ export default function Beranda() {
         {env.dataSource === 'mock' ? (
           <Text className="mt-3 font-medium text-[11px] text-primary-200">Mode data contoh · bukan data resmi</Text>
         ) : null}
+        </Container>
       </View>
+
+      <Container>
 
       {/* Indikator strategis */}
       <SectionHeader title="Indikator Strategis" onAction={() => router.push('/indikator')} />
       {indikator.loading || indikator.error ? (
         <StateView loading={indikator.loading} error={indikator.error} onRetry={indikator.reload} />
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 14, gap: 14 }} decelerationRate="fast" snapToInterval={250}>
+        <ScrollView horizontal nestedScrollEnabled directionalLockEnabled showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 14, gap: 14 }} decelerationRate="fast" snapToInterval={cardWidth + 14} snapToAlignment="start">
           {(indikator.data ?? []).slice(0, 6).map((it, i) => (
             <IndicatorCard key={it.id} item={it} dark={i % 2 === 0} />
           ))}
@@ -88,7 +102,7 @@ export default function Beranda() {
       <View className="mt-3 px-3.5">
         <Card className="flex-row flex-wrap gap-y-4 px-1.5 py-5">
           {SHORTCUTS.map((s) => (
-            <ShortcutTile key={s.label} label={s.label} icon={s.icon} tint={s.tint} onPress={() => router.push(s.href)} />
+            <ShortcutTile key={s.label} label={s.label} icon={s.icon} tint={s.tint} columns={shortcutColumns} onPress={() => router.push(s.href)} />
           ))}
         </Card>
       </View>
@@ -134,7 +148,7 @@ export default function Beranda() {
 
       {/* Infografis */}
       <SectionHeader title="Infografis" onAction={() => router.push('/infografis')} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+      <ScrollView horizontal nestedScrollEnabled directionalLockEnabled showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20 }}>
         {(infografis.data ?? []).map((i) => (
           <InfografisCard key={i.id} item={i} />
         ))}
@@ -147,13 +161,14 @@ export default function Beranda() {
         <ContactLine icon="location-outline" text={kontak.data?.alamat} />
         <ContactLine icon="call-outline" text={kontak.data?.telepon} />
         <ContactLine icon="mail-outline" text={kontak.data?.email} />
-        <Pressable onPress={() => kontak.data?.website && Linking.openURL(kontak.data.website)} className="mt-4 h-11 flex-row items-center justify-center rounded-2xl bg-primary-700">
+        <Pressable onPress={() => kontak.data?.website && Linking.openURL(kontak.data.website)} className="mt-4 min-h-11 flex-row items-center justify-center rounded-2xl bg-primary-700 px-4 py-2.5">
           <Ionicons name="globe-outline" size={18} color="#fff" />
-          <Text className="ml-2 font-bold text-[13.5px] text-white">Kunjungi konawekab.bps.go.id</Text>
+          <Text className="ml-2 shrink font-bold text-[13.5px] text-white">Kunjungi konawekab.bps.go.id</Text>
         </Pressable>
       </Card>
 
       <Text className="mt-6 text-center font-medium text-[11.5px] text-muted">© BPS Kabupaten Konawe · {env.namaApp} v1.0.0</Text>
+      </Container>
     </ScrollView>
   );
 }

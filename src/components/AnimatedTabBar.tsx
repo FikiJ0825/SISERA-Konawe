@@ -2,15 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useEffect } from 'react';
-import { Platform, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+import { MAX_CONTENT_WIDTH, useLayout } from '@/hooks/useLayout';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
 import { colors, fonts } from '@/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -30,10 +33,10 @@ const TAB_META: Record<string, { label: string; icon: IconName; iconActive: Icon
 const BAR_HEIGHT = 66;
 const OVERHANG = 30; // bagian lingkaran yang menonjol di atas bar
 const CORNER = 16;
-const INSET = 16; // jarak horizontal area tab dari tepi layar
 const NOTCH_HALF = 36;
 const NOTCH_DEPTH = 34;
 const BUBBLE = 60;
+const MIN_TAP = 48;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -59,9 +62,15 @@ function barPath(width: number, cx: number, bottom: number) {
 }
 
 export function AnimatedTabBar({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
-  const { width } = useWindowDimensions();
+  const { width: screenWidth } = useLayout();
+  // Di tablet/layar lipat bar dibatasi dan dipusatkan, bukan direntangkan.
+  const width = Math.min(screenWidth, MAX_CONTENT_WIDTH);
   const count = state.routes.length;
-  const tabWidth = (width - INSET * 2) / count;
+  // Jarak samping agar pusat tab pertama/terakhir tetap di bawah takik pada layar sempit:
+  // INSET + (W - 2*INSET)/count >= CORNER + NOTCH_HALF di tab pertama.
+  const minCenter = CORNER + NOTCH_HALF;
+  const inset = Math.max(12, (minCenter - width / (count * 2)) / (1 - 1 / count));
+  const tabWidth = (width - inset * 2) / count;
   const bottomInset = Math.max(insets?.bottom ?? 0, 8);
   const totalHeight = OVERHANG + BAR_HEIGHT + bottomInset;
 
@@ -71,29 +80,43 @@ export function AnimatedTabBar({ state, emitter, navigateToTab, insets }: Bottom
     pos.value = withSpring(state.index, { damping: 16, stiffness: 150, mass: 0.9 });
   }, [state.index, pos]);
 
+  // Keyboard: bar turun keluar layar agar tidak ikut terangkat di atas keyboard (Android adjustResize).
+  const keyboardVisible = useKeyboardVisible();
+  const hidden = useSharedValue(0);
+  useEffect(() => {
+    hidden.value = withTiming(keyboardVisible ? 1 : 0, { duration: 180 });
+  }, [keyboardVisible, hidden]);
+  const rootStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: hidden.value * (totalHeight + 24) }],
+    opacity: 1 - hidden.value,
+  }));
+
   const pathProps = useAnimatedProps(() => {
-    const cx = INSET + (pos.value + 0.5) * tabWidth;
+    const cx = inset + (pos.value + 0.5) * tabWidth;
     return { d: barPath(width, cx, totalHeight) };
   });
 
   const bubbleStyle = useAnimatedStyle(() => {
-    const cx = INSET + (pos.value + 0.5) * tabWidth;
+    const cx = inset + (pos.value + 0.5) * tabWidth;
     const left = Math.max(CORNER + NOTCH_HALF, Math.min(width - CORNER - NOTCH_HALF, cx));
     return { transform: [{ translateX: left - BUBBLE / 2 }] };
   });
 
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: totalHeight }}>
-      <View
-        pointerEvents="none"
-        style={{
+    <Animated.View
+      pointerEvents={keyboardVisible ? 'none' : 'box-none'}
+      style={[
+        {
           position: 'absolute',
-          left: 0,
-          right: 0,
           bottom: 0,
+          left: (screenWidth - width) / 2,
+          width,
           height: totalHeight,
-        }}
-      >
+        },
+        rootStyle,
+      ]}
+    >
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: totalHeight }}>
         <Svg width={width} height={totalHeight}>
           {/* bayangan lembut mengikuti kontur takik (box-shadow kotak akan memotong garis lurus) */}
           {[16, 10, 5].map((w, i) => (
@@ -148,8 +171,8 @@ export function AnimatedTabBar({ state, emitter, navigateToTab, insets }: Bottom
       <View
         style={{
           position: 'absolute',
-          left: INSET,
-          right: INSET,
+          left: inset,
+          right: inset,
           bottom: bottomInset,
           height: BAR_HEIGHT,
           flexDirection: 'row',
@@ -182,6 +205,7 @@ export function AnimatedTabBar({ state, emitter, navigateToTab, insets }: Bottom
               onPress={onPress}
               style={{
                 width: tabWidth,
+                minHeight: MIN_TAP,
                 alignItems: 'center',
                 justifyContent: 'flex-end',
                 paddingBottom: 10,
@@ -189,6 +213,8 @@ export function AnimatedTabBar({ state, emitter, navigateToTab, insets }: Bottom
             >
               <TabIcon index={i} pos={pos} name={meta.icon} />
               <Text
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.1}
                 style={{
                   marginTop: 3,
                   fontSize: 11,
@@ -202,7 +228,7 @@ export function AnimatedTabBar({ state, emitter, navigateToTab, insets }: Bottom
           );
         })}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

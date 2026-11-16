@@ -2,22 +2,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { useLayout } from '@/hooks/useLayout';
 import { colors } from '@/theme';
 import type { Indikator, Infografis, Publikasi } from '@/types';
 import { Card, CoverArt, asIcon, formatTanggal } from './ui';
 
 /** Kartu besar membulat (gaya UI 2): `dark` = biru tua, selain itu putih. */
-export function IndicatorCard({ item, dark, width = 236 }: { item: Indikator; dark?: boolean; width?: number }) {
+export function IndicatorCard({ item, dark, width }: { item: Indikator; dark?: boolean; width?: number }) {
+  const { cardWidth } = useLayout();
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/indikator/[id]', params: { id: item.id } })}
       className="active:opacity-90"
-      style={{ width }}
+      style={{ width: width ?? cardWidth }}
       accessibilityRole="button"
     >
       <View
         className={`overflow-hidden rounded-[28px] p-5 ${dark ? 'bg-primary-700' : 'bg-white'}`}
-        style={{ height: 196, shadowColor: colors.primary900, shadowOpacity: dark ? 0.22 : 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4 }}
+        style={{ minHeight: 196, shadowColor: colors.primary900, shadowOpacity: dark ? 0.22 : 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4 }}
       >
         {dark ? <View className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary-500/30" /> : <View className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary-100" />}
         <View className={`h-11 w-11 items-center justify-center rounded-full ${dark ? 'bg-white' : 'bg-primary-700'}`}>
@@ -26,10 +28,10 @@ export function IndicatorCard({ item, dark, width = 236 }: { item: Indikator; da
         <Text className={`mt-3 font-bold text-[14px] leading-5 ${dark ? 'text-white' : 'text-ink'}`} numberOfLines={2}>
           {item.judul}
         </Text>
-        <View className="flex-1 justify-end">
+        <View className="flex-1 justify-end pt-3">
           <View className="flex-row items-end justify-between">
             <View>
-              <Text className={`font-extrabold text-[26px] ${dark ? 'text-white' : 'text-primary-700'}`}>{item.nilai}</Text>
+              <Text className={`font-extrabold text-[26px] ${dark ? 'text-white' : 'text-primary-700'}`} maxFontSizeMultiplier={1.2}>{item.nilai}</Text>
               <Text className={`font-medium text-[12px] ${dark ? 'text-primary-200' : 'text-muted'}`}>
                 {item.satuan} · {item.periode}
               </Text>
@@ -95,9 +97,10 @@ export function PublicationRow({ item, compact }: { item: Publikasi; compact?: b
 }
 
 export function InfografisCard({ item, fluid }: { item: Infografis; fluid?: boolean }) {
+  const { cardWidth } = useLayout();
   return (
-    <View className={fluid ? 'w-full' : 'mr-3.5 w-[210px]'}>
-      <CoverArt color={item.warna} icon="image" className={`w-full rounded-[24px] ${fluid ? 'h-[190px]' : 'h-[250px]'}`} />
+    <View className={fluid ? 'w-full' : 'mr-3.5'} style={fluid ? undefined : { width: cardWidth * 0.88 }}>
+      <CoverArt color={item.warna} icon="image" className="w-full rounded-[24px]" ratio={0.82} />
       <Text className="mt-2.5 font-bold text-[13px] leading-[18px] text-ink" numberOfLines={2}>
         {item.judul}
       </Text>

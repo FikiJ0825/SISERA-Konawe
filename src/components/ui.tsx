@@ -1,17 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewProps } from 'react-native';
+import { router, useSegments } from 'expo-router';
+import { useEffect, useRef, type ComponentRef, type ReactNode } from 'react';
+import {
+  ActivityIndicator,
+  Keyboard,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type ViewProps,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MAX_CONTENT_WIDTH, useLayout } from '@/hooks/useLayout';
 import { colors } from '@/theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 export const asIcon = (name: string | undefined, fallback: IconName = 'ellipse'): IconName =>
   name && name in Ionicons.glyphMap ? (name as IconName) : fallback;
 
-/** Ruang kosong di bawah konten agar tidak tertutup tab bar. */
-export const TAB_BAR_SPACE = 132;
+/** Pembatas lebar konten: di tablet/layar lipat konten dipusatkan, bukan dilebarkan. */
+export function Container({ children, className = '', ...rest }: ViewProps & { className?: string }) {
+  return (
+    <View className={className} style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }} {...rest}>
+      {children}
+    </View>
+  );
+}
 
 /* ---------- Header lengkung berwarna (gaya UI 2) ---------- */
 export function ScreenHeader({
@@ -31,6 +49,7 @@ export function ScreenHeader({
   return (
     <View className="overflow-hidden rounded-b-[32px] bg-primary-700 pb-6 px-5" style={{ paddingTop: insets.top + 12 }}>
       <HeaderDecor />
+      <Container>
       <View className="flex-row items-center">
         {onBack ? (
           <Pressable
@@ -43,14 +62,15 @@ export function ScreenHeader({
           </Pressable>
         ) : null}
         <View className="flex-1">
-          <Text className="font-extrabold text-[22px] leading-7 text-white" numberOfLines={2}>
+          <Text className="font-extrabold text-[22px] leading-7 text-white" numberOfLines={2} maxFontSizeMultiplier={1.25}>
             {title}
           </Text>
-          {subtitle ? <Text className="mt-0.5 font-medium text-[13px] text-primary-200">{subtitle}</Text> : null}
+          {subtitle ? <Text className="mt-0.5 font-medium text-[13px] text-primary-200" maxFontSizeMultiplier={1.25}>{subtitle}</Text> : null}
         </View>
         {right}
       </View>
       {children}
+      </Container>
     </View>
   );
 }
@@ -80,24 +100,44 @@ export function SearchBar({
   placeholder?: string;
   autoFocus?: boolean;
 }) {
+  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
+
+  // Fokus ditunda sedikit supaya keyboard tidak muncul di tengah transisi layar (patah di Android).
+  useEffect(() => {
+    if (!autoFocus || onPress) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 350);
+    return () => clearTimeout(t);
+  }, [autoFocus, onPress]);
+
   const body = (
     <View className="h-12 flex-1 flex-row items-center rounded-2xl bg-white px-4">
       <Ionicons name="search" size={19} color={colors.muted} />
       {onPress ? (
-        <Text className="ml-2.5 flex-1 font-medium text-[14px] text-muted" numberOfLines={1}>
+        <Text className="ml-2.5 flex-1 font-medium text-[14px] text-muted" numberOfLines={1} maxFontSizeMultiplier={1.2}>
           {placeholder}
         </Text>
       ) : (
-        <TextInput
-          autoFocus={autoFocus}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.muted}
-          className="ml-2.5 flex-1 font-medium text-[14px] text-ink"
-          style={{ paddingVertical: 0 }}
-          returnKeyType="search"
-        />
+        <>
+          <TextInput
+            ref={inputRef}
+            value={value}
+            onChangeText={onChangeText}
+            onSubmitEditing={() => Keyboard.dismiss()}
+            placeholder={placeholder}
+            placeholderTextColor={colors.muted}
+            className="ml-2.5 flex-1 font-medium text-[14px] text-ink"
+            style={{ paddingVertical: 0 }}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+            maxFontSizeMultiplier={1.2}
+          />
+          {value ? (
+            <Pressable onPress={() => onChangeText?.('')} hitSlop={12} accessibilityLabel="Hapus pencarian" className="ml-1 h-6 w-6 items-center justify-center rounded-full bg-primary-100">
+              <Ionicons name="close" size={14} color={colors.primary700} />
+            </Pressable>
+          ) : null}
+        </>
       )}
     </View>
   );
@@ -143,14 +183,14 @@ const TILE_TINTS = [
   { bg: colors.greenSoft, fg: '#4E8F26' },
 ];
 
-export function ShortcutTile({ label, icon, tint = 0, onPress }: { label: string; icon: IconName; tint?: number; onPress?: () => void }) {
+export function ShortcutTile({ label, icon, tint = 0, columns = 4, onPress }: { label: string; icon: IconName; tint?: number; columns?: number; onPress?: () => void }) {
   const t = TILE_TINTS[tint % TILE_TINTS.length];
   return (
-    <Pressable onPress={onPress} className="w-1/4 items-center px-1.5 active:opacity-70" accessibilityRole="button" accessibilityLabel={label}>
-      <View className="h-[68px] w-full items-center justify-center rounded-[22px]" style={{ backgroundColor: t.bg }}>
+    <Pressable onPress={onPress} className="items-center px-1.5 active:opacity-70" style={{ width: `${100 / columns}%` }} accessibilityRole="button" accessibilityLabel={label}>
+      <View className="w-full items-center justify-center rounded-[22px]" style={{ backgroundColor: t.bg, aspectRatio: 1.1, maxHeight: 76 }}>
         <Ionicons name={icon} size={27} color={t.fg} />
       </View>
-      <Text className="mt-2 text-center font-semibold text-[11.5px] text-ink" numberOfLines={1}>
+      <Text className="mt-2 text-center font-semibold text-[11.5px] leading-[15px] text-ink" numberOfLines={2} maxFontSizeMultiplier={1.15}>
         {label}
       </Text>
     </Pressable>
@@ -158,11 +198,11 @@ export function ShortcutTile({ label, icon, tint = 0, onPress }: { label: string
 }
 
 /** Sampul buatan (gradasi + ikon) dipakai selama gambar asli belum tersedia dari API. */
-export function CoverArt({ color, icon = 'document-text', className = '', size }: { color: string; icon?: IconName; className?: string; size?: number }) {
+export function CoverArt({ color, icon = 'document-text', className = '', size, ratio }: { color: string; icon?: IconName; className?: string; size?: number; ratio?: number }) {
   return (
     <View
       className={`items-center justify-center overflow-hidden rounded-2xl ${className}`}
-      style={size ? { width: size, height: size * 1.3 } : undefined}
+      style={size ? { width: size, height: size * 1.3 } : ratio ? { aspectRatio: ratio } : undefined}
     >
       <LinearGradient
         colors={[color, shade(color)]}
@@ -219,12 +259,26 @@ export function StateView({ loading, error, empty, onRetry }: { loading?: boolea
 }
 
 /* ---------- Pembungkus layar ---------- */
+/**
+ * Perilaku scroll + keyboard yang sama di semua layar:
+ * - ketukan pada item tetap bekerja saat keyboard terbuka (tidak hanya menutup keyboard)
+ * - keyboard menutup saat daftar digeser
+ */
+export const keyboardScrollProps = {
+  keyboardShouldPersistTaps: 'handled',
+  keyboardDismissMode: Platform.OS === 'ios' ? 'on-drag' : 'interactive',
+  showsVerticalScrollIndicator: false,
+} as const;
+
 export function Screen({ header, children, refreshControl }: { header: ReactNode; children: ReactNode; refreshControl?: React.ReactElement<any> }) {
+  const { tabBarSpace, safeBottom } = useLayout();
+  // Layar di dalam grup (tabs) punya tab bar melayang; layar detail tidak.
+  const inTabs = useSegments()[0] === '(tabs)';
   return (
     <View className="flex-1 bg-surface">
       {header}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: TAB_BAR_SPACE }} refreshControl={refreshControl as any}>
-        {children}
+      <ScrollView {...keyboardScrollProps} contentContainerStyle={{ paddingBottom: inTabs ? tabBarSpace : safeBottom }} refreshControl={refreshControl as any}>
+        <Container>{children}</Container>
       </ScrollView>
     </View>
   );
