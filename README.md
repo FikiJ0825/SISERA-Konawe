@@ -1,6 +1,6 @@
-# SISERA Konawe
+# SI LAIKA (SISERA Konawe)
 
-Aplikasi Informasi Data Statistik Strategis Kabupaten Konawe.
+**SI LAIKA** — Sistem Informasi dan Layanan Statistik Konawe Terintegrasi. Aplikasi Informasi Data Statistik Strategis Kabupaten Konawe.
 
 Project Tugas Akhir Program Maganghub di BPS Kabupaten Konawe. Konsepnya mengacu pada SISERA (BPS Provinsi Sulawesi Tenggara), tetapi memakai data strategis Kabupaten Konawe.
 
@@ -34,5 +34,11 @@ Project terdaftar di Expo: `@maf_logictech/sisera-konawe`.
 
 Catatan: variabel `EXPO_PUBLIC_*` ikut tertanam saat `eas update`/`eas build`, jadi isi di expo.dev (Environment variables) untuk environment `preview`.
 
+## Struktur & Sumber Data
+- `app/` — layar (expo-router): 5 tab (Beranda, Publikasi, Indikator, Tabel, Lainnya) + detail indikator dan halaman menu.
+- `src/components/` — komponen UI; `AnimatedTabBar` = tab bar dengan lingkaran aktif yang meluncur.
+- `src/services/` — sumber data. `EXPO_PUBLIC_DATA_SOURCE=mock` (default, data contoh di `src/data/mock/`, **bukan data resmi**) atau `api`.
+- **Memasang API BPS Konawe:** lengkapi `src/services/apiSource.ts` (endpoint dan pemetaan respons ke `src/types`), isi `EXPO_PUBLIC_API_BASE_URL` dengan URL proxy, lalu set `EXPO_PUBLIC_DATA_SOURCE=api`. API key WebAPI BPS **tidak boleh** ada di app; simpan di proxy (mis. Supabase Edge Function).
+
 ## Status
-Tahap perancangan; kerangka app Expo dan konfigurasi EAS sudah disiapkan.
+Tahap UI dengan data contoh. Integrasi data asli menunggu perizinan dari BPS pusat.

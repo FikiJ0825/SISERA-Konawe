@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SISERA Konawe",
+    "name": "SI LAIKA",
     "slug": "sisera-konawe",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,14 +11,15 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
+      "output": "single",
       "favicon": "./assets/favicon.png"
     },
     "extra": {
@@ -32,6 +33,24 @@
     },
     "updates": {
       "url": "https://u.expo.dev/8bd6e7d7-23d0-4128-8882-0590ffa34e7f"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 170,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
+      "expo-font",
+      "expo-image"
+    ],
+    "scheme": "silaika",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
