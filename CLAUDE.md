@@ -28,6 +28,7 @@ Aplikasi mobile informasi data statistik strategis Kabupaten Konawe. Project Tug
 
 ## Alur git & dua perangkat
 - Dikerjakan di 2 perangkat: laptop (branch `main`) dan PC rumah (branch `PC-silaika`).
-- Claude commit/push ke branch sendiri; **user yang merge ke main**. Jangan push langsung ke main.
+- Di **laptop**: Claude commit dan push langsung ke `main` (tanpa branch kerja).
+- Di **PC**: Claude commit dan push ke `PC-silaika`; user yang merge ke `main`.
 - Mulai kerja: `git pull`. Selesai kerja: perbarui `docs/HANDOFF.md`, commit, push.
 - Di sesi baru, baca `docs/HANDOFF.md` dulu untuk tahu status terakhir.
