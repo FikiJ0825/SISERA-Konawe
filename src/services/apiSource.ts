@@ -168,6 +168,8 @@ type Spec = {
   varId: number;
   /** Id vertical variable baris yang diambil (mis. 4 = "Persentase penduduk miskin"). */
   vervar: number;
+  /** Id derived variable (turvar); 0 = "Tidak ada". */
+  turvar?: number;
   satuan: string;
   kategori: string;
   definisi: string;
@@ -210,6 +212,31 @@ const SPEC_INDIKATOR: Spec[] = [
     kategori: 'Ekonomi dan Perdagangan',
     definisi: 'Laju pertumbuhan PDRB Kabupaten Konawe atas dasar harga konstan 2010 (total semua lapangan usaha).',
     ikon: 'trending-up',
+    periodik: 'tahunan',
+  },
+  // TPT kabupaten tidak dipublikasikan di WebAPI; TPAK (Sakernas) tersedia per jenis kelamin (turvar 163/164).
+  {
+    id: 'tpak-l',
+    judul: 'TPAK Laki-laki',
+    varId: 235,
+    vervar: 1,
+    turvar: 163,
+    satuan: 'Persen',
+    kategori: 'Ketenagakerjaan',
+    definisi: 'Tingkat Partisipasi Angkatan Kerja: persentase angkatan kerja terhadap penduduk usia kerja, laki-laki.',
+    ikon: 'briefcase',
+    periodik: 'tahunan',
+  },
+  {
+    id: 'tpak-p',
+    judul: 'TPAK Perempuan',
+    varId: 235,
+    vervar: 1,
+    turvar: 164,
+    satuan: 'Persen',
+    kategori: 'Ketenagakerjaan',
+    definisi: 'Tingkat Partisipasi Angkatan Kerja: persentase angkatan kerja terhadap penduduk usia kerja, perempuan.',
+    ikon: 'briefcase',
     periodik: 'tahunan',
   },
   {
@@ -257,7 +284,7 @@ async function muatIndikator(spec: Spec): Promise<Indikator | undefined> {
     desimal = Number(j.var?.[0]?.decimal ?? desimal) || desimal;
     for (const [kode, v] of Object.entries((j.datacontent ?? {}) as Raw)) {
       // Kode: vervar + var + turvar(0) + th + turth. Dicocokkan dari ujung kiri dengan awalan yang diketahui.
-      const awalan = `${spec.vervar}${spec.varId}0`;
+      const awalan = `${spec.vervar}${spec.varId}${spec.turvar ?? 0}`;
       if (!kode.startsWith(awalan) || typeof v !== 'number') continue;
       for (const p of dipakai) {
         const sisa = kode.slice(awalan.length);
@@ -311,9 +338,60 @@ const BULAN_PENUH = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ];
 
+// ---------- Jumlah penduduk (SIMDASI / Kabupaten dalam Angka) ----------
+// Variabel dinamis "Jumlah Penduduk" (var 35) berhenti di 2014, jadi pakai tabel SIMDASI 3.1.1
+// (penduduk menurut kecamatan) dan ambil baris total Kab. Konawe (kode wilayah 7403000).
+
+const SIMDASI = '/interoperabilitas/datasource/simdasi/id';
+const WILAYAH = '7403000';
+const SUBJEK_PENDUDUK = 519;
+const KODE_TABEL_PENDUDUK = '3.1.1';
+
+/** Angka format Indonesia ("267.139,0") jadi number. */
+const angkaId = (s: string) => Number(s.replace(/\./g, '').replace(',', '.'));
+
+async function muatPenduduk(): Promise<Indikator | undefined> {
+  const daftar = await request(`${SIMDASI}/24/wilayah/${WILAYAH}/id_subjek/${SUBJEK_PENDUDUK}`);
+  const tabel = ((daftar.data?.[1]?.data ?? []) as Raw[]).find((t) => t.kode_tabel === KODE_TABEL_PENDUDUK);
+  if (!tabel) return undefined;
+  const tahunTersedia = ([...(tabel.ketersediaan_tahun ?? [])] as number[]).sort((a, b) => a - b);
+  const dipakai = tahunTersedia.slice(-TITIK_TREN);
+
+  const titik = (
+    await Promise.all(
+      dipakai.map(async (tahun) => {
+        const j = await request(`${SIMDASI}/25/wilayah/${WILAYAH}/tahun/${tahun}/id_tabel/${tabel.id_tabel}`);
+        const d = j.data?.[1] as Raw | undefined;
+        const kolom = Object.entries((d?.kolom ?? {}) as Raw).find(([, c]) => c.nama_variabel === 'Jumlah Penduduk');
+        const baris = ((d?.data ?? []) as Raw[]).find((r) => String(r.kode_wilayah) === WILAYAH);
+        const mentah = kolom && baris?.variables?.[kolom[0]]?.value;
+        if (typeof mentah !== 'string') return undefined;
+        let jiwa = angkaId(mentah);
+        // Beberapa tahun dicatat dalam ribu jiwa ("267,1"), lainnya dalam jiwa. Penduduk Konawe > 100 ribu.
+        if (jiwa < 10_000) jiwa *= 1000;
+        return { label: String(tahun), nilai: Math.round(jiwa) };
+      }),
+    )
+  ).filter((x): x is TrenPoint => x !== undefined);
+
+  const akhir = titik[titik.length - 1];
+  if (!akhir) return undefined;
+  return {
+    id: 'penduduk',
+    judul: 'Jumlah Penduduk Kabupaten Konawe',
+    nilai: formatAngka(akhir.nilai, 0),
+    satuan: 'Jiwa',
+    periode: akhir.label,
+    kategori: 'Sosial dan Kependudukan',
+    definisi: 'Banyaknya penduduk yang bertempat tinggal di wilayah Kabupaten Konawe (Kabupaten dalam Angka).',
+    tren: titik,
+    ikon: 'people',
+  };
+}
+
 let cacheIndikator: Promise<Indikator[]> | undefined;
 const getIndikator = () => {
-  cacheIndikator ??= Promise.all(SPEC_INDIKATOR.map((s) => muatIndikator(s))).then(
+  cacheIndikator ??= Promise.all([muatPenduduk(), ...SPEC_INDIKATOR.map((s) => muatIndikator(s))]).then(
     (r) => r.filter((x): x is Indikator => x !== undefined),
   );
   // Jangan simpan kegagalan: percobaan berikutnya (reload) harus mengulang.

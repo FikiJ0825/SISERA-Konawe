@@ -10,7 +10,7 @@ Integrasi WebAPI BPS (domain Kab. Konawe `7403`) selesai di kode; tinggal deploy
 ## Sudah selesai
 - UI SI LAIKA v2 (5 tab, detail indikator, halaman menu), responsif untuk Android
 - Splash logo SI LAIKA, setup Expo + EAS
-- `src/services/apiSource.ts` lengkap: publikasi, BRS, infografis, berita, tabel (subcat + subject), indikator (IPM, kemiskinan, pertumbuhan ekonomi, inflasi bulanan). Diuji terhadap API asli lewat proxy lokal tiruan.
+- `src/services/apiSource.ts` lengkap: publikasi, BRS, infografis, berita, tabel (subcat + subject), indikator (jumlah penduduk dari SIMDASI, IPM, kemiskinan, pertumbuhan ekonomi, TPAK laki-laki/perempuan, inflasi bulanan). Diuji terhadap API asli lewat proxy lokal tiruan.
 - Edge Function `supabase/functions/bps-proxy`: key BPS di secret Supabase, path di-whitelist, hanya domain 7403. **Belum di-deploy.**
 - `scripts/bps-explore.mjs`: eksplorasi endpoint (key dari `.env`, sampel ke `.bps-samples/`, gitignored)
 - Keep-alive Supabase via GitHub Actions (PR #1, #2)
@@ -20,7 +20,7 @@ Integrasi WebAPI BPS (domain Kab. Konawe `7403`) selesai di kode; tinggal deploy
 - Deploy proxy: `supabase login`, `supabase link`, `supabase secrets set BPS_API_KEY=...`, `supabase functions deploy bps-proxy`
 - Isi `.env`: `EXPO_PUBLIC_API_BASE_URL=https://<ref>.supabase.co/functions/v1/bps-proxy`, `EXPO_PUBLIC_DATA_SOURCE=api`, `EXPO_PUBLIC_BPS_DOMAIN_CODE=7403`, kunci anon Supabase
 - Uji tiap tab dengan data asli di Expo Go
-- Indikator yang belum ada di WebAPI Konawe: jumlah penduduk terkini (var 35 hanya sampai 2014), TPT, NTP. Saat ini disembunyikan; putuskan cari sumber lain (tabel statis/BRS) atau biarkan.
+- Tidak ada di WebAPI Konawe: TPT (diganti TPAK per jenis kelamin, var 235) dan NTP (hanya tingkat provinsi) — disembunyikan. Tren penduduk tahun lama berpresisi ribuan (SIMDASI mencatat dalam ribu jiwa).
 - Jadwal rilis dan kontak masih dari mock (tidak ada di WebAPI)
 - Batas WebAPI: parameter `th` maksimal 3 tahun per permintaan; endpoint `indicators` tidak mendukung kabupaten
 - Inflasi di app = month-to-month (var 196); inflasi y-on-y ada di judul BRS

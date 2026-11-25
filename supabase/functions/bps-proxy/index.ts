@@ -10,6 +10,7 @@
 
 const BPS_BASE = 'https://webapi.bps.go.id/v1/api';
 const DOMAIN = Deno.env.get('BPS_DOMAIN_CODE') ?? '7403'; // Kab. Konawe
+const WILAYAH = Deno.env.get('BPS_WILAYAH_CODE') ?? '7403000'; // kode wilayah 7 digit (SIMDASI)
 const CACHE_SECONDS = 600;
 
 // Hanya path yang dipakai SI LAIKA dan hanya untuk domain Konawe.
@@ -19,6 +20,9 @@ const PATH_ALLOWED = new RegExp(
     `|list/model/th/domain/${DOMAIN}/var/\\d+` +
     `|list/model/data/domain/${DOMAIN}/var/\\d+/th/\\d+(;\\d+){0,2}` +
     `|view/domain/${DOMAIN}/model/(publication|pressrelease|news|statictable)/lang/(ind|eng)/id/[\\w-]+` +
+    // SIMDASI (Kabupaten dalam Angka): daftar tabel per subjek dan isi tabel, hanya wilayah Konawe.
+    `|interoperabilitas/datasource/simdasi/id/24/wilayah/${WILAYAH}/id_subjek/\\d+` +
+    `|interoperabilitas/datasource/simdasi/id/25/wilayah/${WILAYAH}/tahun/\\d{4}/id_tabel/[A-Za-z0-9+/=_-]+` +
     `)$`,
 );
 const QUERY_ALLOWED = new Set([
@@ -48,7 +52,9 @@ Deno.serve(async (req) => {
   const path = url.searchParams.get('p') ?? '';
   if (!PATH_ALLOWED.test(path)) return json({ status: 'error', message: 'Path tidak diizinkan' }, 400);
 
-  const upstream = new URL(`${BPS_BASE}${path}/key/${key}`);
+  // id_tabel SIMDASI berupa base64 (bisa memuat "/", "+", "="): encode agar tetap satu segmen path.
+  const aman = path.replace(/(\/id_tabel\/)(.+)$/, (_m, a, id) => a + encodeURIComponent(id));
+  const upstream = new URL(`${BPS_BASE}${aman}/key/${key}`);
   for (const [k, v] of url.searchParams) {
     if (k !== 'p' && QUERY_ALLOWED.has(k)) upstream.searchParams.set(k, v);
   }
