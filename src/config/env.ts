@@ -11,6 +11,8 @@ export const env = {
   apiBaseUrl: (process.env.EXPO_PUBLIC_API_BASE_URL ?? '').replace(/\/$/, ''),
   /** Kode wilayah BPS untuk Kab. Konawe. Verifikasi lewat endpoint daftar domain WebAPI BPS. */
   domainCode: process.env.EXPO_PUBLIC_BPS_DOMAIN_CODE ?? '',
+  /** Kunci anon Supabase (publik by design) untuk memanggil Edge Function proxy. */
+  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
   namaWilayah: 'Kab. Konawe',
   namaApp: 'SI LAIKA',
 };

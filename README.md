@@ -40,7 +40,7 @@ Catatan: variabel `EXPO_PUBLIC_*` ikut tertanam saat `eas update`/`eas build`, j
 - `app/` — layar (expo-router): 5 tab (Beranda, Publikasi, Indikator, Tabel, Lainnya) + detail indikator dan halaman menu.
 - `src/components/` — komponen UI; `AnimatedTabBar` = tab bar dengan lingkaran aktif yang meluncur.
 - `src/services/` — sumber data. `EXPO_PUBLIC_DATA_SOURCE=mock` (default, data contoh di `src/data/mock/`, **bukan data resmi**) atau `api`.
-- **Memasang API BPS Konawe:** lengkapi `src/services/apiSource.ts` (endpoint dan pemetaan respons ke `src/types`), isi `EXPO_PUBLIC_API_BASE_URL` dengan URL proxy, lalu set `EXPO_PUBLIC_DATA_SOURCE=api`. API key WebAPI BPS **tidak boleh** ada di app; simpan di proxy (mis. Supabase Edge Function).
+- **API BPS Konawe:** `apiSource.ts` memanggil proxy Supabase Edge Function (`supabase/functions/bps-proxy`) yang menyimpan API key WebAPI BPS sebagai secret. Isi `EXPO_PUBLIC_API_BASE_URL` dengan URL function, lalu set `EXPO_PUBLIC_DATA_SOURCE=api`. API key BPS **tidak boleh** ada di app/repo.
 
 ## Status
-Tahap UI dengan data contoh. Integrasi data asli menunggu perizinan dari BPS pusat.
+Tahap integrasi WebAPI BPS (kode selesai, proxy menunggu deploy).

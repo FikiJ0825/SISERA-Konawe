@@ -47,3 +47,6 @@ Thumbs.db
 
 # Claude Code local
 .claude/
+
+# Sampel respons BPS (eksplorasi lokal)
+.bps-samples/
